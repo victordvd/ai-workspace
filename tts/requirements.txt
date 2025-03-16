@@ -1,0 +1,4 @@
+# Text-to-Speech Core Requirements
+edge-tts  # Microsoft Edge TTS
+pygame  # Audio playback
+sounddevice

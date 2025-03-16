@@ -1,0 +1,1 @@
+python ./gemini_en_teacher.py
