@@ -3,6 +3,7 @@ import pygame
 import os
 import time
 import glob
+import re
 
 # 新增全局變數控制播放狀態
 should_stop = False
@@ -76,46 +77,63 @@ def split_mixed_text(text):
     
     return segments
 
+def split_into_phrases(text):
+    """Split text into phrases based on punctuation and maintain language separation"""
+    # First split by language
+    mixed_segments = split_mixed_text(text)
+    phrases = []
+    
+    for segment_text, lang in mixed_segments:
+        # Split by punctuation while preserving it
+        if lang == 'en':
+            # For English, split by common punctuation
+            sub_phrases = re.split(r'([.!?;]+\s*)', segment_text)
+        else:
+            # For Chinese, split by Chinese punctuation as well
+            sub_phrases = re.split(r'([.!?;。！？；]+\s*)', segment_text)
+        
+        # Recombine punctuation with previous phrase
+        current_phrase = ""
+        for i in range(len(sub_phrases)):
+            current_phrase += sub_phrases[i]
+            if (i % 2 == 1 or i == len(sub_phrases) - 1) and current_phrase.strip():
+                phrases.append((current_phrase.strip(), lang))
+                current_phrase = ""
+    
+    return phrases
+
 def text_to_speech(text):
     global should_stop, pygame_initialized
     should_stop = False
     try:
-        segments = split_mixed_text(text)
-        temp_files = []
-        
-        # Process each segment
-        for segment_text, lang in segments:
-            if should_stop:
-                break
-            if segment_text.strip():
-                temp_file = text_to_speech_single(segment_text, lang)
-                if temp_file:
-                    temp_files.append(temp_file)
-        
+        # Split text into smaller phrases
+        phrases = split_into_phrases(text)
         if not pygame_initialized:
             init_audio()
         
-        for temp_file in temp_files:
+        for phrase_text, lang in phrases:
             if should_stop:
                 break
-            try:
-                pygame.mixer.music.load(temp_file)
-                pygame.mixer.music.play()
-                
-                start_time = time.time()
-                while pygame.mixer.music.get_busy() and not should_stop:
-                    time.sleep(0.1)
-                    if time.time() - start_time > 30:
-                        break
-                
-            except pygame.error as e:
-                print(f"Error playing {temp_file}: {e}")
-            finally:
-                try:
-                    if os.path.exists(temp_file):
-                        os.remove(temp_file)
-                except:
-                    pass
+            if phrase_text.strip():
+                temp_file = text_to_speech_single(phrase_text, lang)
+                if temp_file:
+                    try:
+                        pygame.mixer.music.load(temp_file)
+                        pygame.mixer.music.play()
+                        
+                        start_time = time.time()
+                        while pygame.mixer.music.get_busy() and not should_stop:
+                            time.sleep(0.1)
+                            if time.time() - start_time > 30:  # timeout protection
+                                break
+                    except pygame.error as e:
+                        print(f"Error playing {temp_file}: {e}")
+                    finally:
+                        try:
+                            if os.path.exists(temp_file):
+                                os.remove(temp_file)
+                        except:
+                            pass
         
         cleanup_audio()
         cleanup_temp_files()
