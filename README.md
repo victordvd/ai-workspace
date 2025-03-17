@@ -1,2 +1,2 @@
-# ai-workspace
- 
+- Python version recommended 3.12
+- Execute "pip install -r requirements.txt" to install required python modules
