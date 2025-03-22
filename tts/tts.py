@@ -40,7 +40,7 @@ def text_to_speech_single(text, language='en'):
             import asyncio
             asyncio.run(communicate.save(output_file))
         except Exception as e:
-            print(f"Error saving audio: {e}")
+            # print(f"Error saving audio: {e}")
             return None
         
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
